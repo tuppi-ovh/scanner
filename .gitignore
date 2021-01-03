@@ -1,3 +1,4 @@
-OpenCV_Document_Scanner/
+__pycache__/
 venv/
 perso/
+config.py
