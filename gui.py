@@ -31,10 +31,10 @@ import config
 CURRENT_DIR = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
 DEFAULT_INPUT_PATH = "/"
-DEFAULT_INPUT_IMAGE_SIZE = 500
+DEFAULT_INPUT_IMAGE_SIZE = 550
 DEFAULT_OUTPUT_PATH = "/"
 
-DEFAULT_PAD = 20
+DEFAULT_PAD = 10
 DEFAULT_CONTRAST = 2.0
 DEFAULT_ROTATION = 0.0
 
@@ -61,7 +61,7 @@ class Root(Tk):
         self.outputImageFrame.grid(column = 1, row = 2, padx = DEFAULT_PAD, pady = DEFAULT_PAD) 
 
         # Commands: button input file
-        self.buttonInput = ttk.Button(self.labelFrame, text = "Open File", command = self.openFile)
+        self.buttonInput = ttk.Button(self.labelFrame, text = "Open Image", command = self.openFile)
         self.buttonInput.grid(column = 0, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # Commands: rotate
         self.rotateFrame = ttk.LabelFrame(self.labelFrame, text = "Rotate")
@@ -69,9 +69,12 @@ class Root(Tk):
         # Commands: contrast
         self.contrastFrame = ttk.LabelFrame(self.labelFrame, text = "Contrast")
         self.contrastFrame.grid(column = 2, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
-        # Commands: save
-        self.buttonShow = ttk.Button(self.labelFrame, text = "Save File", command = self.outputFile)
+        # Commands: append
+        self.buttonShow = ttk.Button(self.labelFrame, text = "Append to PDF", command = self.appendImage)
         self.buttonShow.grid(column = 3, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        # Commands: save
+        self.buttonShow = ttk.Button(self.labelFrame, text = "Save PDF", command = self.outputFile)
+        self.buttonShow.grid(column = 4, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
         # rotation
         self.rotateValue = StringVar()
@@ -116,11 +119,14 @@ class Root(Tk):
         self.outputCanvasImage = self.outputCanvas.create_image(5, 5, anchor=NW, image=emptyPhotoImg) 
         self.outputCanvas.image = emptyPhotoImg
 
+        # output images
+        self.outputImages = []
+
     def openFile(self):
         self.filename = filedialog.askopenfilename(
-            initialdir = DEFAULT_INPUT_PATH, 
-            title = "Input File", 
-            filetypes =(("image files","*.png"),("all files","*.*")) 
+            initialdir=DEFAULT_INPUT_PATH, 
+            title="Input File", 
+            filetypes=(("image files","*.png"),("all files","*.*")) 
             )
         # scale 
         self.img = Image.open(self.filename)
@@ -143,10 +149,13 @@ class Root(Tk):
     def contrastImage(self):
         self.processImage(image=self.reducedImg)
 
+    def appendImage(self):
+        self.processImage(image=self.img, append=True)
+
     def outputFile(self):
         self.processImage(image=self.img, save=True)
 
-    def processImage(self, image=None, save=False):
+    def processImage(self, image=None, save=False, append=False):
         # rotate
         outputImg = image.rotate(float(self.rotateValue.get()), expand=0, fillcolor=self.whiteColor)
         # contrast
@@ -160,13 +169,18 @@ class Root(Tk):
         # show output
         self.outputCanvas.itemconfig(self.outputCanvasImage, image = outputPhotoImg)
         self.outputCanvas.image = outputPhotoImg
+        # append 
+        if append:
+            self.outputImages.append(outputImg)
         # save
         if save:
             filename = filedialog.asksaveasfilename(
                 initialdir = DEFAULT_OUTPUT_PATH, 
                 title = "Output File", 
                 filetypes = (("document files","*.pdf"),("all files","*.*")) )
-            outputImg.save(filename)
+            self.outputImages[0].save(filename, save_all=True, append_images=self.outputImages[1:])
+            # clear output images 
+            self.outputImages = []
 
 root = Root()
 root.mainloop()
