@@ -35,6 +35,8 @@ DEFAULT_INPUT_IMAGE_SIZE = 500
 DEFAULT_OUTPUT_PATH = "/"
 
 DEFAULT_PAD = 20
+DEFAULT_CONTRAST = 2.0
+DEFAULT_ROTATION = 0.0
 
 # overwrite config
 if config.DEFAULT_INPUT_PATH is not None:
@@ -73,7 +75,7 @@ class Root(Tk):
 
         # rotation
         self.rotateValue = StringVar()
-        self.rotateValue.set(0.0)
+        self.rotateValue.set(DEFAULT_ROTATION)
         self.spinBox = Spinbox(
             self.rotateFrame,
             from_=-180,
@@ -87,7 +89,7 @@ class Root(Tk):
 
         # contrast
         self.contrastValue = StringVar()
-        self.contrastValue.set(1.0)
+        self.contrastValue.set(DEFAULT_CONTRAST)
         self.spinBox = Spinbox(
             self.contrastFrame,
             from_=0.0,
@@ -98,6 +100,21 @@ class Root(Tk):
             command=self.contrastImage
             )
         self.spinBox.pack(padx=DEFAULT_PAD, pady=DEFAULT_PAD)
+
+        # empty images
+        self.whiteColor = (255, 255, 255)
+        emptyImg = Image.new("RGB", (DEFAULT_INPUT_IMAGE_SIZE, DEFAULT_INPUT_IMAGE_SIZE), self.whiteColor)
+        emptyPhotoImg = ImageTk.PhotoImage(emptyImg)  
+        # show input
+        self.canvas = Canvas(self.inputImageFrame, width=DEFAULT_INPUT_IMAGE_SIZE, height=DEFAULT_INPUT_IMAGE_SIZE)  
+        self.canvas.pack()
+        self.canvasImage = self.canvas.create_image(5, 5, anchor=NW, image=emptyPhotoImg) 
+        self.canvas.image = emptyPhotoImg
+        # show output
+        self.outputCanvas = Canvas(self.outputImageFrame, width=DEFAULT_INPUT_IMAGE_SIZE, height=DEFAULT_INPUT_IMAGE_SIZE)  
+        self.outputCanvas.pack()
+        self.outputCanvasImage = self.outputCanvas.create_image(5, 5, anchor=NW, image=emptyPhotoImg) 
+        self.outputCanvas.image = emptyPhotoImg
 
     def openFile(self):
         self.filename = filedialog.askopenfilename(
@@ -110,17 +127,15 @@ class Root(Tk):
         width, height = self.img.size
         ratio = min(DEFAULT_INPUT_IMAGE_SIZE / width, DEFAULT_INPUT_IMAGE_SIZE / height)
         self.reducedImg = self.img.resize((int(width * ratio), int(height * ratio)), Image.ANTIALIAS)
-        self.inputPhotoImg = ImageTk.PhotoImage(self.reducedImg)  
+        inputPhotoImg = ImageTk.PhotoImage(self.reducedImg)
+        # default values
+        self.rotateValue.set(DEFAULT_ROTATION)
+        self.contrastValue.set(DEFAULT_CONTRAST)
         # show input
-        self.canvas = Canvas(self.inputImageFrame, width = DEFAULT_INPUT_IMAGE_SIZE, height = DEFAULT_INPUT_IMAGE_SIZE)  
-        self.canvas.pack()
-        self.canvas.create_image(5, 5, anchor=NW, image=self.inputPhotoImg) 
-        self.canvas.image = self.inputPhotoImg  
-        # show output
-        self.outputCanvas = Canvas(self.outputImageFrame, width = DEFAULT_INPUT_IMAGE_SIZE, height = DEFAULT_INPUT_IMAGE_SIZE)  
-        self.outputCanvas.pack()
-        self.outputCanvasImage = self.outputCanvas.create_image(5, 5, anchor=NW, image=self.inputPhotoImg) 
-        self.outputCanvas.image = self.inputPhotoImg  
+        self.canvas.itemconfig(self.canvasImage, image = inputPhotoImg)
+        self.canvas.image = inputPhotoImg
+        # process output
+        self.processImage(image=self.reducedImg)
 
     def rotateImage(self):
         self.processImage(image=self.reducedImg)
@@ -132,9 +147,8 @@ class Root(Tk):
         self.processImage(image=self.img, save=True)
 
     def processImage(self, image=None, save=False):
-        # rotate 
-        white = (255, 255, 255)
-        outputImg = image.rotate(float(self.rotateValue.get()), expand = 0, fillcolor = white)
+        # rotate
+        outputImg = image.rotate(float(self.rotateValue.get()), expand=0, fillcolor=self.whiteColor)
         # contrast
         enhancer = ImageEnhance.Contrast(outputImg)
         outputImg = enhancer.enhance(float(self.contrastValue.get()))
