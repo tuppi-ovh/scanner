@@ -109,8 +109,8 @@ class Root(Tk):
         self.img = Image.open(self.filename)
         width, height = self.img.size
         ratio = min(DEFAULT_INPUT_IMAGE_SIZE / width, DEFAULT_INPUT_IMAGE_SIZE / height)
-        self.inputPhotoImg = self.img.resize((int(width * ratio), int(height * ratio)), Image.ANTIALIAS)
-        self.inputPhotoImg = ImageTk.PhotoImage(self.inputPhotoImg)  
+        self.reducedImg = self.img.resize((int(width * ratio), int(height * ratio)), Image.ANTIALIAS)
+        self.inputPhotoImg = ImageTk.PhotoImage(self.reducedImg)  
         # show input
         self.canvas = Canvas(self.inputImageFrame, width = DEFAULT_INPUT_IMAGE_SIZE, height = DEFAULT_INPUT_IMAGE_SIZE)  
         self.canvas.pack()
@@ -123,18 +123,18 @@ class Root(Tk):
         self.outputCanvas.image = self.inputPhotoImg  
 
     def rotateImage(self):
-        self.processImage(False)
+        self.processImage(image=self.reducedImg)
 
     def contrastImage(self):
-        self.processImage(False)
+        self.processImage(image=self.reducedImg)
 
     def outputFile(self):
-        self.processImage(True)
+        self.processImage(image=self.img, save=True)
 
-    def processImage(self, save):
+    def processImage(self, image=None, save=False):
         # rotate 
         white = (255, 255, 255)
-        outputImg = self.img.rotate(float(self.rotateValue.get()), expand = 0, fillcolor = white)
+        outputImg = image.rotate(float(self.rotateValue.get()), expand = 0, fillcolor = white)
         # contrast
         enhancer = ImageEnhance.Contrast(outputImg)
         outputImg = enhancer.enhance(float(self.contrastValue.get()))
@@ -142,7 +142,7 @@ class Root(Tk):
         width, height = outputImg.size
         ratio = min(DEFAULT_INPUT_IMAGE_SIZE / width, DEFAULT_INPUT_IMAGE_SIZE / height)
         outputPhotoImg = outputImg.resize((int(width * ratio), int(height * ratio)), Image.ANTIALIAS)
-        outputPhotoImg = ImageTk.PhotoImage(outputPhotoImg)  
+        outputPhotoImg = ImageTk.PhotoImage(outputPhotoImg)
         # show output
         self.outputCanvas.itemconfig(self.outputCanvasImage, image = outputPhotoImg)
         self.outputCanvas.image = outputPhotoImg
