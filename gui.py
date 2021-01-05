@@ -24,6 +24,7 @@ import inspect
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
+from tkinter import Listbox
 from PIL import ImageTk, Image, ImageEnhance
 
 import config
@@ -44,13 +45,25 @@ if config.DEFAULT_INPUT_PATH is not None:
 if config.DEFAULT_OUTPUT_PATH is not None:
     DEFAULT_OUTPUT_PATH = config.DEFAULT_OUTPUT_PATH
 
+
+def reduceFilename(filename):
+    length = len(filename)
+    max_length = 40
+    if length > max_length:
+        filename = "..." + filename[(length - max_length):]
+    return filename
+
 class Root(Tk):
     def __init__(self):
         super(Root, self).__init__()
+
+        # Different inits
         self.title("Document Scanner")
-        # width & height
         self.minsize(DEFAULT_INPUT_IMAGE_SIZE * 2, DEFAULT_INPUT_IMAGE_SIZE)
+        self.outputImages = []
+        self.logCounter = 0
  
+        # Frames
         self.labelFrame = ttk.LabelFrame(self, text = "Commands")
         self.labelFrame.grid(column = 0, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
@@ -76,7 +89,7 @@ class Root(Tk):
         self.buttonShow = ttk.Button(self.labelFrame, text = "Save PDF", command = self.outputFile)
         self.buttonShow.grid(column = 4, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
-        # rotation
+        # rotation spinbox
         self.rotateValue = StringVar()
         self.rotateValue.set(DEFAULT_ROTATION)
         self.spinBox = Spinbox(
@@ -90,19 +103,23 @@ class Root(Tk):
             )
         self.spinBox.pack(padx=DEFAULT_PAD, pady=DEFAULT_PAD)
 
-        # contrast
+        # contrast spinbox
         self.contrastValue = StringVar()
         self.contrastValue.set(DEFAULT_CONTRAST)
         self.spinBox = Spinbox(
             self.contrastFrame,
             from_=0.0,
-            to=2.0,
+            to=3.0,
             increment=0.1,
             textvariable=self.contrastValue,
             width=5,
             command=self.contrastImage
             )
         self.spinBox.pack(padx=DEFAULT_PAD, pady=DEFAULT_PAD)
+
+        # log listbox
+        self.logList = Listbox(self, height=6, width=70)
+        self.logList.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
         # empty images
         self.whiteColor = (255, 255, 255)
@@ -119,8 +136,9 @@ class Root(Tk):
         self.outputCanvasImage = self.outputCanvas.create_image(5, 5, anchor=NW, image=emptyPhotoImg) 
         self.outputCanvas.image = emptyPhotoImg
 
-        # output images
-        self.outputImages = []
+    def log(self, message):
+        self.logList.insert(0, " [{}] {}".format(self.logCounter, message))
+        self.logCounter += 1
 
     def openFile(self):
         self.filename = filedialog.askopenfilename(
@@ -142,6 +160,8 @@ class Root(Tk):
         self.canvas.image = inputPhotoImg
         # process output
         self.processImage(image=self.reducedImg)
+        # log
+        self.log("Open file {}".format(reduceFilename(self.filename)))
 
     def rotateImage(self):
         self.processImage(image=self.reducedImg)
@@ -151,9 +171,14 @@ class Root(Tk):
 
     def appendImage(self):
         self.processImage(image=self.img, append=True)
+        # log
+        self.log("Append file {} to PDF".format(reduceFilename(self.filename)))
 
     def outputFile(self):
         self.processImage(image=self.img, save=True)
+        # log
+        self.log("Save PDF as {}".format(reduceFilename(self.filenamePdf)))
+        self.log("------------------------------")
 
     def processImage(self, image=None, save=False, append=False):
         # rotate
@@ -174,11 +199,11 @@ class Root(Tk):
             self.outputImages.append(outputImg)
         # save
         if save:
-            filename = filedialog.asksaveasfilename(
+            self.filenamePdf = filedialog.asksaveasfilename(
                 initialdir = DEFAULT_OUTPUT_PATH, 
                 title = "Output File", 
                 filetypes = (("document files","*.pdf"),("all files","*.*")) )
-            self.outputImages[0].save(filename, save_all=True, append_images=self.outputImages[1:])
+            self.outputImages[0].save(self.filenamePdf, save_all=True, append_images=self.outputImages[1:])
             # clear output images 
             self.outputImages = []
 
