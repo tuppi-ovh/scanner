@@ -24,6 +24,7 @@ import inspect
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
+from tkinter import Listbox
 from PIL import ImageTk, Image, ImageEnhance
 
 import config
@@ -31,10 +32,12 @@ import config
 CURRENT_DIR = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
 DEFAULT_INPUT_PATH = "/"
-DEFAULT_INPUT_IMAGE_SIZE = 500
+DEFAULT_INPUT_IMAGE_SIZE = 550
 DEFAULT_OUTPUT_PATH = "/"
 
-DEFAULT_PAD = 20
+DEFAULT_PAD = 10
+DEFAULT_CONTRAST = 2.0
+DEFAULT_ROTATION = 0.0
 
 # overwrite config
 if config.DEFAULT_INPUT_PATH is not None:
@@ -42,13 +45,25 @@ if config.DEFAULT_INPUT_PATH is not None:
 if config.DEFAULT_OUTPUT_PATH is not None:
     DEFAULT_OUTPUT_PATH = config.DEFAULT_OUTPUT_PATH
 
+
+def reduceFilename(filename):
+    length = len(filename)
+    max_length = 40
+    if length > max_length:
+        filename = "..." + filename[(length - max_length):]
+    return filename
+
 class Root(Tk):
     def __init__(self):
         super(Root, self).__init__()
+
+        # Different inits
         self.title("Document Scanner")
-        # width & height
         self.minsize(DEFAULT_INPUT_IMAGE_SIZE * 2, DEFAULT_INPUT_IMAGE_SIZE)
+        self.outputImages = []
+        self.logCounter = 0
  
+        # Frames
         self.labelFrame = ttk.LabelFrame(self, text = "Commands")
         self.labelFrame.grid(column = 0, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
@@ -59,7 +74,7 @@ class Root(Tk):
         self.outputImageFrame.grid(column = 1, row = 2, padx = DEFAULT_PAD, pady = DEFAULT_PAD) 
 
         # Commands: button input file
-        self.buttonInput = ttk.Button(self.labelFrame, text = "Open File", command = self.openFile)
+        self.buttonInput = ttk.Button(self.labelFrame, text = "Open Image", command = self.openFile)
         self.buttonInput.grid(column = 0, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # Commands: rotate
         self.rotateFrame = ttk.LabelFrame(self.labelFrame, text = "Rotate")
@@ -67,13 +82,16 @@ class Root(Tk):
         # Commands: contrast
         self.contrastFrame = ttk.LabelFrame(self.labelFrame, text = "Contrast")
         self.contrastFrame.grid(column = 2, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
-        # Commands: save
-        self.buttonShow = ttk.Button(self.labelFrame, text = "Save File", command = self.outputFile)
+        # Commands: append
+        self.buttonShow = ttk.Button(self.labelFrame, text = "Append to PDF", command = self.appendImage)
         self.buttonShow.grid(column = 3, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        # Commands: save
+        self.buttonShow = ttk.Button(self.labelFrame, text = "Save PDF", command = self.outputFile)
+        self.buttonShow.grid(column = 4, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
-        # rotation
+        # rotation spinbox
         self.rotateValue = StringVar()
-        self.rotateValue.set(0.0)
+        self.rotateValue.set(DEFAULT_ROTATION)
         self.spinBox = Spinbox(
             self.rotateFrame,
             from_=-180,
@@ -85,13 +103,13 @@ class Root(Tk):
             )
         self.spinBox.pack(padx=DEFAULT_PAD, pady=DEFAULT_PAD)
 
-        # contrast
+        # contrast spinbox
         self.contrastValue = StringVar()
-        self.contrastValue.set(1.0)
+        self.contrastValue.set(DEFAULT_CONTRAST)
         self.spinBox = Spinbox(
             self.contrastFrame,
             from_=0.0,
-            to=2.0,
+            to=3.0,
             increment=0.1,
             textvariable=self.contrastValue,
             width=5,
@@ -99,42 +117,72 @@ class Root(Tk):
             )
         self.spinBox.pack(padx=DEFAULT_PAD, pady=DEFAULT_PAD)
 
+        # log listbox
+        self.logList = Listbox(self, height=6, width=70)
+        self.logList.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+
+        # empty images
+        self.whiteColor = (255, 255, 255)
+        emptyImg = Image.new("RGB", (DEFAULT_INPUT_IMAGE_SIZE, DEFAULT_INPUT_IMAGE_SIZE), self.whiteColor)
+        emptyPhotoImg = ImageTk.PhotoImage(emptyImg)  
+        # show input
+        self.canvas = Canvas(self.inputImageFrame, width=DEFAULT_INPUT_IMAGE_SIZE, height=DEFAULT_INPUT_IMAGE_SIZE)  
+        self.canvas.pack()
+        self.canvasImage = self.canvas.create_image(5, 5, anchor=NW, image=emptyPhotoImg) 
+        self.canvas.image = emptyPhotoImg
+        # show output
+        self.outputCanvas = Canvas(self.outputImageFrame, width=DEFAULT_INPUT_IMAGE_SIZE, height=DEFAULT_INPUT_IMAGE_SIZE)  
+        self.outputCanvas.pack()
+        self.outputCanvasImage = self.outputCanvas.create_image(5, 5, anchor=NW, image=emptyPhotoImg) 
+        self.outputCanvas.image = emptyPhotoImg
+
+    def log(self, message):
+        self.logList.insert(0, " [{}] {}".format(self.logCounter, message))
+        self.logCounter += 1
+
     def openFile(self):
         self.filename = filedialog.askopenfilename(
-            initialdir = DEFAULT_INPUT_PATH, 
-            title = "Input File", 
-            filetypes =(("image files","*.png"),("all files","*.*")) 
+            initialdir=DEFAULT_INPUT_PATH, 
+            title="Input File", 
+            filetypes=(("image files","*.png"),("all files","*.*")) 
             )
         # scale 
         self.img = Image.open(self.filename)
         width, height = self.img.size
         ratio = min(DEFAULT_INPUT_IMAGE_SIZE / width, DEFAULT_INPUT_IMAGE_SIZE / height)
-        self.inputPhotoImg = self.img.resize((int(width * ratio), int(height * ratio)), Image.ANTIALIAS)
-        self.inputPhotoImg = ImageTk.PhotoImage(self.inputPhotoImg)  
+        self.reducedImg = self.img.resize((int(width * ratio), int(height * ratio)), Image.ANTIALIAS)
+        inputPhotoImg = ImageTk.PhotoImage(self.reducedImg)
+        # default values
+        self.rotateValue.set(DEFAULT_ROTATION)
+        self.contrastValue.set(DEFAULT_CONTRAST)
         # show input
-        self.canvas = Canvas(self.inputImageFrame, width = DEFAULT_INPUT_IMAGE_SIZE, height = DEFAULT_INPUT_IMAGE_SIZE)  
-        self.canvas.pack()
-        self.canvas.create_image(5, 5, anchor=NW, image=self.inputPhotoImg) 
-        self.canvas.image = self.inputPhotoImg  
-        # show output
-        self.outputCanvas = Canvas(self.outputImageFrame, width = DEFAULT_INPUT_IMAGE_SIZE, height = DEFAULT_INPUT_IMAGE_SIZE)  
-        self.outputCanvas.pack()
-        self.outputCanvasImage = self.outputCanvas.create_image(5, 5, anchor=NW, image=self.inputPhotoImg) 
-        self.outputCanvas.image = self.inputPhotoImg  
+        self.canvas.itemconfig(self.canvasImage, image = inputPhotoImg)
+        self.canvas.image = inputPhotoImg
+        # process output
+        self.processImage(image=self.reducedImg)
+        # log
+        self.log("Open file {}".format(reduceFilename(self.filename)))
 
     def rotateImage(self):
-        self.processImage(False)
+        self.processImage(image=self.reducedImg)
 
     def contrastImage(self):
-        self.processImage(False)
+        self.processImage(image=self.reducedImg)
+
+    def appendImage(self):
+        self.processImage(image=self.img, append=True)
+        # log
+        self.log("Append file {} to PDF".format(reduceFilename(self.filename)))
 
     def outputFile(self):
-        self.processImage(True)
+        self.processImage(image=self.img, save=True)
+        # log
+        self.log("Save PDF as {}".format(reduceFilename(self.filenamePdf)))
+        self.log("------------------------------")
 
-    def processImage(self, save):
-        # rotate 
-        white = (255, 255, 255)
-        outputImg = self.img.rotate(float(self.rotateValue.get()), expand = 0, fillcolor = white)
+    def processImage(self, image=None, save=False, append=False):
+        # rotate
+        outputImg = image.rotate(float(self.rotateValue.get()), expand=0, fillcolor=self.whiteColor)
         # contrast
         enhancer = ImageEnhance.Contrast(outputImg)
         outputImg = enhancer.enhance(float(self.contrastValue.get()))
@@ -142,17 +190,22 @@ class Root(Tk):
         width, height = outputImg.size
         ratio = min(DEFAULT_INPUT_IMAGE_SIZE / width, DEFAULT_INPUT_IMAGE_SIZE / height)
         outputPhotoImg = outputImg.resize((int(width * ratio), int(height * ratio)), Image.ANTIALIAS)
-        outputPhotoImg = ImageTk.PhotoImage(outputPhotoImg)  
+        outputPhotoImg = ImageTk.PhotoImage(outputPhotoImg)
         # show output
         self.outputCanvas.itemconfig(self.outputCanvasImage, image = outputPhotoImg)
         self.outputCanvas.image = outputPhotoImg
+        # append 
+        if append:
+            self.outputImages.append(outputImg)
         # save
         if save:
-            filename = filedialog.asksaveasfilename(
+            self.filenamePdf = filedialog.asksaveasfilename(
                 initialdir = DEFAULT_OUTPUT_PATH, 
                 title = "Output File", 
                 filetypes = (("document files","*.pdf"),("all files","*.*")) )
-            outputImg.save(filename)
+            self.outputImages[0].save(self.filenamePdf, save_all=True, append_images=self.outputImages[1:])
+            # clear output images 
+            self.outputImages = []
 
 root = Root()
 root.mainloop()
