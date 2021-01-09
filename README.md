@@ -5,6 +5,8 @@ The main idea of this project is to simplify the document scanning procedure:
 - rotate and apply contrast (done)
 - save output as pdf file (done)
 
+![image](screenshot.png)
+
 # Prepare Repository
 
 *Important! The steps described below were tested with python version 3.7.*
@@ -21,10 +23,6 @@ source venv/bin/activate
 sudo apt-get install python3-tk
 python3 -m pip install -r requirements.txt
 ```
-
-# Execution 
-
-TBD
 
 # License
 
