@@ -35,7 +35,7 @@ DEFAULT_INPUT_PATH = "/"
 DEFAULT_INPUT_IMAGE_SIZE = 550
 DEFAULT_OUTPUT_PATH = "/"
 
-DEFAULT_PAD = 10
+DEFAULT_PAD = 5
 DEFAULT_CONTRAST = 2.0
 DEFAULT_ROTATION = 0.0
 
@@ -56,16 +56,25 @@ def reduceFilename(filename):
 class Root(Tk):
     def __init__(self):
         super(Root, self).__init__()
+        self.outputImages = []
+        self.logCounter = 0
+        self.buildGui()
+
+    def buildGui(self):
 
         # Different inits
         self.title("Document Scanner")
         self.minsize(DEFAULT_INPUT_IMAGE_SIZE * 2, DEFAULT_INPUT_IMAGE_SIZE)
-        self.outputImages = []
-        self.logCounter = 0
- 
+
         # Frames
-        self.labelFrame = ttk.LabelFrame(self, text = "Commands")
-        self.labelFrame.grid(column = 0, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        self.controlFrame = ttk.Frame(self)
+        self.controlFrame.grid(column = 0, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+
+        self.buttonFrame = ttk.Frame(self.controlFrame)
+        self.buttonFrame.grid(column = 0, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)        
+
+        self.settingFrame = ttk.Frame(self.controlFrame)
+        self.settingFrame.grid(column = 0, row = 1, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
         self.inputImageFrame = ttk.LabelFrame(self, text = "Input Image")
         self.inputImageFrame.grid(column = 0, row = 2, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
@@ -73,27 +82,27 @@ class Root(Tk):
         self.outputImageFrame = ttk.LabelFrame(self, text = "Output Image")
         self.outputImageFrame.grid(column = 1, row = 2, padx = DEFAULT_PAD, pady = DEFAULT_PAD) 
 
-        # Commands: button input file
-        self.buttonInput = ttk.Button(self.labelFrame, text = "Open Image", command = self.openFile)
+        # Commands: button open image
+        self.buttonInput = ttk.Button(self.buttonFrame, text = "Open Image", command = self.openFile)
         self.buttonInput.grid(column = 0, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
-        # Commands: rotate
-        self.rotateFrame = ttk.LabelFrame(self.labelFrame, text = "Rotate")
-        self.rotateFrame.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
-        # Commands: contrast
-        self.contrastFrame = ttk.LabelFrame(self.labelFrame, text = "Contrast")
-        self.contrastFrame.grid(column = 2, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # Commands: append
-        self.buttonShow = ttk.Button(self.labelFrame, text = "Append to PDF", command = self.appendImage)
-        self.buttonShow.grid(column = 3, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        self.buttonShow = ttk.Button(self.buttonFrame, text = "Append to PDF", command = self.appendImage)
+        self.buttonShow.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # Commands: save
-        self.buttonShow = ttk.Button(self.labelFrame, text = "Save PDF", command = self.outputFile)
-        self.buttonShow.grid(column = 4, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        self.buttonShow = ttk.Button(self.buttonFrame, text = "Save PDF", command = self.outputFile)
+        self.buttonShow.grid(column = 2, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        # Commands: button delete source images
+        self.buttonInput = ttk.Button(self.buttonFrame, text = "Delete Source Images", command = self.openFile)
+        self.buttonInput.grid(column = 3, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
+        # rotation label
+        self.rotateLabel = ttk.Label(self.settingFrame, text = "Rotation:")
+        self.rotateLabel.grid(column = 0, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # rotation spinbox
         self.rotateValue = StringVar()
         self.rotateValue.set(DEFAULT_ROTATION)
-        self.spinBox = Spinbox(
-            self.rotateFrame,
+        self.rotateSpinBox = Spinbox(
+            self.settingFrame,
             from_=-180,
             to=180,
             increment=0.2,
@@ -101,21 +110,24 @@ class Root(Tk):
             width=6,
             command=self.rotateImage
             )
-        self.spinBox.pack(padx=DEFAULT_PAD, pady=DEFAULT_PAD)
+        self.rotateSpinBox.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
+        # contrast label
+        self.contrastLabel = ttk.Label(self.settingFrame, text = "Contrast:")
+        self.contrastLabel.grid(column = 2, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # contrast spinbox
         self.contrastValue = StringVar()
         self.contrastValue.set(DEFAULT_CONTRAST)
-        self.spinBox = Spinbox(
-            self.contrastFrame,
+        self.contrastSpinBox = Spinbox(
+            self.settingFrame,
             from_=0.0,
             to=3.0,
             increment=0.1,
             textvariable=self.contrastValue,
-            width=5,
+            width=6,
             command=self.contrastImage
             )
-        self.spinBox.pack(padx=DEFAULT_PAD, pady=DEFAULT_PAD)
+        self.contrastSpinBox.grid(column = 3, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
         # log listbox
         self.logList = Listbox(self, height=6, width=70)
@@ -172,7 +184,7 @@ class Root(Tk):
     def appendImage(self):
         self.processImage(image=self.img, append=True)
         # log
-        self.log("Append file {} to PDF".format(reduceFilename(self.filename)))
+        self.log("Append file {} to PDF ({})".format(reduceFilename(self.filename), len(self.outputImages)))
 
     def outputFile(self):
         self.processImage(image=self.img, save=True)
