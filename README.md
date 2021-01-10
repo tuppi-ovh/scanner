@@ -5,7 +5,7 @@ The main idea of this project is to simplify the document scanning procedure:
 - rotate and apply contrast (done)
 - save output as pdf file (done)
 
-![image](screenshot.png)
+![image](images/screenshot.png)
 
 # Prepare Repository
 

@@ -36,7 +36,7 @@ DEFAULT_INPUT_IMAGE_SIZE = 550
 DEFAULT_OUTPUT_PATH = "/"
 
 DEFAULT_PAD = 5
-DEFAULT_CONTRAST = 2.0
+DEFAULT_CONTRAST = 200
 DEFAULT_ROTATION = 0.0
 
 # overwrite config
@@ -59,6 +59,39 @@ class Root(Tk):
         self.outputImages = []
         self.logCounter = 0
         self.buildGui()
+
+    def buildGuiCrop(self, frame, column_from, row, text, cmd):
+        # crop label
+        label = ttk.Label(frame, text = text)
+        label.grid(column = column_from, row = row, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        # crop spinbox
+        value = StringVar()
+        value.set(0)
+        spinbox = Spinbox(
+            frame,
+            from_=0,
+            to=100,
+            increment=5,
+            textvariable=value,
+            width=6,
+            command=cmd
+            )
+        spinbox.grid(column = column_from + 1, row = row, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        # crop 2 spinbox
+        value2 = StringVar()
+        value2.set(100)
+        spinbox2 = Spinbox(
+            frame,
+            from_=0,
+            to=100,
+            increment=5,
+            textvariable=value2,
+            width=6,
+            command=cmd
+            )
+        spinbox2.grid(column = column_from + 2, row = row, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        # return all
+        return (value, value2)
 
     def buildGui(self):
 
@@ -120,14 +153,31 @@ class Root(Tk):
         self.contrastValue.set(DEFAULT_CONTRAST)
         self.contrastSpinBox = Spinbox(
             self.settingFrame,
-            from_=0.0,
-            to=3.0,
-            increment=0.1,
+            from_=0,
+            to=300,
+            increment=10,
             textvariable=self.contrastValue,
             width=6,
             command=self.contrastImage
             )
         self.contrastSpinBox.grid(column = 3, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+
+        # crop x
+        self.cropLeftValue, self.cropRightValue = self.buildGuiCrop(
+            frame = self.settingFrame,
+            column_from = 0,
+            row = 1,
+            text = "Crop on X:",
+            cmd = self.cropImage
+        )
+        # crop y
+        self.cropTopValue, self.cropBottomValue = self.buildGuiCrop(
+            frame = self.settingFrame,
+            column_from = 3,
+            row = 1,
+            text = "Crop on Y:",
+            cmd = self.cropImage
+        )
 
         # log listbox
         self.logList = Listbox(self, height=6, width=70)
@@ -181,6 +231,9 @@ class Root(Tk):
     def contrastImage(self):
         self.processImage(image=self.reducedImg)
 
+    def cropImage(self):
+        self.processImage(image=self.reducedImg)
+
     def appendImage(self):
         self.processImage(image=self.img, append=True)
         # log
@@ -197,7 +250,14 @@ class Root(Tk):
         outputImg = image.rotate(float(self.rotateValue.get()), expand=0, fillcolor=self.whiteColor)
         # contrast
         enhancer = ImageEnhance.Contrast(outputImg)
-        outputImg = enhancer.enhance(float(self.contrastValue.get()))
+        outputImg = enhancer.enhance(float(self.contrastValue.get()) * 0.01)
+        # crop 
+        width, height = outputImg.size
+        left = width * float(self.cropLeftValue.get()) * 0.01
+        top = height * float(self.cropTopValue.get()) * 0.01
+        right = width * float(self.cropRightValue.get()) * 0.01
+        bottom = height * float(self.cropBottomValue.get()) * 0.01
+        outputImg = outputImg.crop((left, top, right, bottom)) 
         # scale
         width, height = outputImg.size
         ratio = min(DEFAULT_INPUT_IMAGE_SIZE / width, DEFAULT_INPUT_IMAGE_SIZE / height)
@@ -208,6 +268,8 @@ class Root(Tk):
         self.outputCanvas.image = outputPhotoImg
         # append 
         if append:
+            if outputImg.mode == 'RGBA':
+                outputImg = outputImg.convert('RGB')
             self.outputImages.append(outputImg)
         # save
         if save:
