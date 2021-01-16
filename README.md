@@ -1,7 +1,7 @@
 # Document Scanner
 
-The main idea of this project is to simplify the document scanning procedure:
-- scan using the physical scanner (maybe comming soon)
+The main idea of this project is to simplify the document scanning process:
+- open scanned image file (done)
 - rotate and apply contrast (done)
 - save output as pdf file (done)
 

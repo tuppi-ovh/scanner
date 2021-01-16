@@ -124,9 +124,6 @@ class Root(Tk):
         # Commands: save
         self.buttonShow = ttk.Button(self.buttonFrame, text = "Save PDF", command = self.outputFile)
         self.buttonShow.grid(column = 2, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
-        # Commands: button delete source images
-        self.buttonInput = ttk.Button(self.buttonFrame, text = "Delete Source Images", command = self.openFile)
-        self.buttonInput.grid(column = 3, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
         # rotation label
         self.rotateLabel = ttk.Label(self.settingFrame, text = "Rotation:")
@@ -190,12 +187,12 @@ class Root(Tk):
         # show input
         self.canvas = Canvas(self.inputImageFrame, width=DEFAULT_INPUT_IMAGE_SIZE, height=DEFAULT_INPUT_IMAGE_SIZE)  
         self.canvas.pack()
-        self.canvasImage = self.canvas.create_image(5, 5, anchor=NW, image=emptyPhotoImg) 
+        self.canvasImage = self.canvas.create_image(DEFAULT_INPUT_IMAGE_SIZE/2, DEFAULT_INPUT_IMAGE_SIZE/2, anchor=CENTER, image=emptyPhotoImg) 
         self.canvas.image = emptyPhotoImg
         # show output
         self.outputCanvas = Canvas(self.outputImageFrame, width=DEFAULT_INPUT_IMAGE_SIZE, height=DEFAULT_INPUT_IMAGE_SIZE)  
         self.outputCanvas.pack()
-        self.outputCanvasImage = self.outputCanvas.create_image(5, 5, anchor=NW, image=emptyPhotoImg) 
+        self.outputCanvasImage = self.outputCanvas.create_image(DEFAULT_INPUT_IMAGE_SIZE/2, DEFAULT_INPUT_IMAGE_SIZE/2, anchor=CENTER, image=emptyPhotoImg) 
         self.outputCanvas.image = emptyPhotoImg
 
     def log(self, message):
