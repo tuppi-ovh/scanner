@@ -273,6 +273,7 @@ class Root(Tk):
             self.filenamePdf = filedialog.asksaveasfilename(
                 initialdir = DEFAULT_OUTPUT_PATH, 
                 title = "Output File", 
+                defaultextension="*.*",
                 filetypes = (("document files","*.pdf"),("all files","*.*")) )
             self.outputImages[0].save(self.filenamePdf, save_all=True, append_images=self.outputImages[1:])
             # clear output images 
