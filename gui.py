@@ -19,6 +19,7 @@ For information on Document Scanner: tuppi.ovh@gmail.com
 """
 
 import os
+import json
 import inspect
 import pytesseract
 
@@ -63,6 +64,9 @@ class Root(Tk):
         self.outputImages = []
         self.logCounter = 0
         self.buildGui()
+        with open(config.DEFAULT_TAGS_PATH) as f:
+            self.tags = json.load(f)
+
 
     def buildGuiCrop(self, frame, column_from, row, text, cmd):
         # crop label
@@ -278,17 +282,17 @@ class Root(Tk):
             self.parseList.insert(END, l)
 
     def parseTags(self):
-        tags = self.tagsValue.get().split(" ")
+        input_tags = self.tagsValue.get().split(" ")
         score_max = 0
-        score = 0
-        for key, value in config.DEFAULT_TAGS.items():
-            for tag in tags:
+        for key, value in self.tags.items():
+            score = 0
+            for tag in input_tags:
                 if tag in key:
                     score = score + 1
             if score > score_max:
                 score_max = score
                 self.filenameValue.set(value)
-        score_percent = score/len(tags)*100
+        score_percent = score/len(input_tags)*100
         self.log(f"Parse tags with score {score_percent} %")
 
     def rotateImage(self):
@@ -339,11 +343,14 @@ class Root(Tk):
             self.outputImages.append(outputImg)
         # save
         if save:
-            self.filenamePdf = filedialog.asksaveasfilename(
-                initialdir = DEFAULT_OUTPUT_PATH, 
-                title = "Output File", 
-                defaultextension="*.*",
-                filetypes = (("document files","*.pdf"),("all files","*.*")) )
+            if False:
+                self.filenamePdf = filedialog.asksaveasfilename(
+                    initialdir = DEFAULT_OUTPUT_PATH, 
+                    title = "Output File", 
+                    defaultextension="*.*",
+                    filetypes = (("document files","*.pdf"),("all files","*.*")) )
+            else:
+                self.filenamePdf = f"{DEFAULT_OUTPUT_PATH}\\{self.filenameValue.get()}"
             self.outputImages[0].save(self.filenamePdf, save_all=True, append_images=self.outputImages[1:])
             # clear output images 
             self.outputImages = []
