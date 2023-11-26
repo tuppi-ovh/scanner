@@ -24,6 +24,7 @@ source venv/bin/activate
 
 # Install dependencies
 sudo apt-get install python3-tk
+sudo apt-get install tesseract-ocr
 python3 -m pip install pillow
 python3 -m pip install pytesseract
 ```
@@ -47,6 +48,20 @@ source venv/bin/activate
 
 ## Launch GUI
 python3 gui.py
+```
+
+## Frames
+
+```
+|-------------------frame0-----------------------|
+|-------frame00--------|--------frame01----------|
+|-------frame000-------|                         |
+|-------frame001-------|                         |         
+|-------frame002-------|                         |
+|-------------------frame1-----------------------|
+|---frame10----|-----frame11----|----frame12-----|
+|              |                |                |
+|--------------|----------------|----------------|
 ```
 
 ## License

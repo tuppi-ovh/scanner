@@ -40,6 +40,9 @@ DEFAULT_PAD = 5
 DEFAULT_CONTRAST = 200
 DEFAULT_ROTATION = 0.0
 
+DEFAULT_TAGS = ""
+DEFAULT_FILENAME = ""
+
 # overwrite config
 if config.DEFAULT_INPUT_PATH is not None:
     DEFAULT_INPUT_PATH = config.DEFAULT_INPUT_PATH
@@ -101,45 +104,56 @@ class Root(Tk):
         self.minsize(DEFAULT_INPUT_IMAGE_SIZE * 2, DEFAULT_INPUT_IMAGE_SIZE)
 
         # Frames
-        self.controlFrame = ttk.Frame(self)
-        self.controlFrame.grid(column = 0, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        self.frame0 = ttk.Frame(self)
+        self.frame0.grid(column = 0, row = 0)
+        self.frame1 = ttk.Frame(self)
+        self.frame1.grid(column = 0, row = 1)
 
-        self.buttonFrame = ttk.Frame(self.controlFrame)
-        self.buttonFrame.grid(column = 0, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)        
+        self.frame00 = ttk.Frame(self.frame0)
+        self.frame00.grid(column = 0, row = 0)
+        self.frame01 = ttk.Frame(self.frame0)
+        self.frame01.grid(column = 1, row = 0)
 
-        self.settingFrame = ttk.Frame(self.controlFrame)
-        self.settingFrame.grid(column = 0, row = 1, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        self.frame000 = ttk.Frame(self.frame00)
+        self.frame000.grid(column = 0, row = 0)
+        self.frame001 = ttk.Frame(self.frame00)
+        self.frame001.grid(column = 0, row = 1)
+        self.frame002 = ttk.Frame(self.frame00)
+        self.frame002.grid(column = 0, row = 2)
 
-        self.inputImageFrame = ttk.LabelFrame(self, text = "Input Image")
-        self.inputImageFrame.grid(column = 0, row = 2, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        self.frame10 = ttk.LabelFrame(self.frame1, text = "Input Image")
+        self.frame10.grid(column = 0, row = 2, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
     
-        self.outputImageFrame = ttk.LabelFrame(self, text = "Output Image")
-        self.outputImageFrame.grid(column = 1, row = 2, padx = DEFAULT_PAD, pady = DEFAULT_PAD) 
+        self.frame11 = ttk.LabelFrame(self.frame1, text = "Output Image")
+        self.frame11.grid(column = 1, row = 2, padx = DEFAULT_PAD, pady = DEFAULT_PAD) 
 
-        self.outputImageTextFrame = ttk.LabelFrame(self, text = "Parsed Text")
-        self.outputImageTextFrame.grid(column = 2, row = 2, padx = DEFAULT_PAD, pady = DEFAULT_PAD) 
+        self.frame12 = ttk.LabelFrame(self.frame1, text = "Parsed Text")
+        self.frame12.grid(column = 2, row = 2, padx = DEFAULT_PAD, pady = DEFAULT_PAD) 
 
         # Commands: button open image
-        self.buttonInput = ttk.Button(self.buttonFrame, text = "Open Image", command = self.openFile)
+        self.buttonInput = ttk.Button(self.frame000, text = "Open Image", command = self.openFile)
         self.buttonInput.grid(column = 0, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
-        # Commands: button parse
-        self.buttonInput = ttk.Button(self.buttonFrame, text = "Parse Image", command = self.parseImage)
-        self.buttonInput.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        # Commands: button parse image
+        self.buttonParseImage = ttk.Button(self.frame000, text = "Parse Image", command = self.parseImage)
+        self.buttonParseImage.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        # Commands: button parse tags
+        self.buttonParseTags = ttk.Button(self.frame000, text = "Parse Tags", command = self.parseTags)
+        self.buttonParseTags.grid(column = 2, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # Commands: append
-        self.buttonShow = ttk.Button(self.buttonFrame, text = "Append to PDF", command = self.appendImage)
-        self.buttonShow.grid(column = 2, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
-        # Commands: save
-        self.buttonShow = ttk.Button(self.buttonFrame, text = "Save PDF", command = self.outputFile)
+        self.buttonShow = ttk.Button(self.frame000, text = "Append to PDF", command = self.appendImage)
         self.buttonShow.grid(column = 3, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        # Commands: save
+        self.buttonShow = ttk.Button(self.frame000, text = "Save PDF", command = self.outputFile)
+        self.buttonShow.grid(column = 4, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
         # rotation label
-        self.rotateLabel = ttk.Label(self.settingFrame, text = "Rotation:")
+        self.rotateLabel = ttk.Label(self.frame001, text = "Rotation:")
         self.rotateLabel.grid(column = 0, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # rotation spinbox
         self.rotateValue = StringVar()
         self.rotateValue.set(DEFAULT_ROTATION)
         self.rotateSpinBox = Spinbox(
-            self.settingFrame,
+            self.frame001,
             from_=-180,
             to=180,
             increment=0.2,
@@ -148,15 +162,14 @@ class Root(Tk):
             command=self.rotateImage
             )
         self.rotateSpinBox.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
-
         # contrast label
-        self.contrastLabel = ttk.Label(self.settingFrame, text = "Contrast:")
+        self.contrastLabel = ttk.Label(self.frame001, text = "Contrast:")
         self.contrastLabel.grid(column = 2, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # contrast spinbox
         self.contrastValue = StringVar()
         self.contrastValue.set(DEFAULT_CONTRAST)
         self.contrastSpinBox = Spinbox(
-            self.settingFrame,
+            self.frame001,
             from_=0,
             to=300,
             increment=10,
@@ -165,30 +178,52 @@ class Root(Tk):
             command=self.contrastImage
             )
         self.contrastSpinBox.grid(column = 3, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
-
         # crop x
         self.cropLeftValue, self.cropRightValue = self.buildGuiCrop(
-            frame = self.settingFrame,
+            frame = self.frame001,
             column_from = 0,
             row = 1,
             text = "Crop on X:",
             cmd = self.cropImage
-        )
+            )
         # crop y
         self.cropTopValue, self.cropBottomValue = self.buildGuiCrop(
-            frame = self.settingFrame,
+            frame = self.frame001,
             column_from = 3,
             row = 1,
             text = "Crop on Y:",
             cmd = self.cropImage
-        )
-
+            )
+        # Tags label
+        self.tagsLabel = ttk.Label(self.frame002, text = "Tags:")
+        self.tagsLabel.grid(column = 0, row = 2, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        # Tags entry
+        self.tagsValue = StringVar()
+        self.tagsValue.set(DEFAULT_TAGS)
+        self.tagsEntry = ttk.Entry(
+            self.frame002,
+            textvariable=self.tagsValue,
+            width=80
+            )
+        self.tagsEntry.grid(column = 1, row = 2, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        # Filename label
+        self.filenameLabel = ttk.Label(self.frame002, text = "Fiename:")
+        self.filenameLabel.grid(column = 0, row = 3, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        # Filename entry
+        self.filenameValue = StringVar()
+        self.filenameValue.set(DEFAULT_FILENAME)
+        self.filenameEntry = ttk.Entry(
+            self.frame002,
+            textvariable=self.filenameValue,
+            width=80
+            )
+        self.filenameEntry.grid(column = 1, row = 3, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # log listbox
-        self.logList = Listbox(self, height=6, width=70)
+        self.logList = Listbox(self.frame01, height=6, width=70)
         self.logList.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
         # parse listbox
-        self.parseList = Listbox(self.outputImageTextFrame, height=25, width=70)
+        self.parseList = Listbox(self.frame12, height=25, width=60)
         self.parseList.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
         # empty images
@@ -196,12 +231,12 @@ class Root(Tk):
         emptyImg = Image.new("RGB", (DEFAULT_INPUT_IMAGE_SIZE, DEFAULT_INPUT_IMAGE_SIZE), self.whiteColor)
         emptyPhotoImg = ImageTk.PhotoImage(emptyImg)  
         # show input
-        self.canvas = Canvas(self.inputImageFrame, width=DEFAULT_INPUT_IMAGE_SIZE, height=DEFAULT_INPUT_IMAGE_SIZE)  
+        self.canvas = Canvas(self.frame10, width=DEFAULT_INPUT_IMAGE_SIZE, height=DEFAULT_INPUT_IMAGE_SIZE)  
         self.canvas.pack()
         self.canvasImage = self.canvas.create_image(DEFAULT_INPUT_IMAGE_SIZE/2, DEFAULT_INPUT_IMAGE_SIZE/2, anchor=CENTER, image=emptyPhotoImg) 
         self.canvas.image = emptyPhotoImg
         # show output
-        self.outputCanvas = Canvas(self.outputImageFrame, width=DEFAULT_INPUT_IMAGE_SIZE, height=DEFAULT_INPUT_IMAGE_SIZE)  
+        self.outputCanvas = Canvas(self.frame11, width=DEFAULT_INPUT_IMAGE_SIZE, height=DEFAULT_INPUT_IMAGE_SIZE)  
         self.outputCanvas.pack()
         self.outputCanvasImage = self.outputCanvas.create_image(DEFAULT_INPUT_IMAGE_SIZE/2, DEFAULT_INPUT_IMAGE_SIZE/2, anchor=CENTER, image=emptyPhotoImg) 
         self.outputCanvas.image = emptyPhotoImg
@@ -241,7 +276,20 @@ class Root(Tk):
         lines = text[:-1].split("\n")
         for l in lines:
             self.parseList.insert(END, l)
-            print(l)
+
+    def parseTags(self):
+        tags = self.tagsValue.get().split(" ")
+        score_max = 0
+        score = 0
+        for key, value in config.DEFAULT_TAGS.items():
+            for tag in tags:
+                if tag in key:
+                    score = score + 1
+            if score > score_max:
+                score_max = score
+                self.filenameValue.set(value)
+        score_percent = score/len(tags)*100
+        self.log(f"Parse tags with score {score_percent} %")
 
     def rotateImage(self):
         self.processImage(image=self.reducedImg)
