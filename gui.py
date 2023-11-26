@@ -1,6 +1,6 @@
 """
 Document Scanner - Simplify the document scanning process.
-Copyright (C) 2021 Vadim MUKHTAROV
+Copyright (C) 2021-2023 tuppi-ovh
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -40,6 +40,10 @@ DEFAULT_OUTPUT_PATH = "/"
 DEFAULT_PAD = 5
 DEFAULT_CONTRAST = 200
 DEFAULT_ROTATION = 0.0
+DEFAULT_CROP_X_LEFT = 1
+DEFAULT_CROP_X_RIGHT = 100
+DEFAULT_CROP_Y_TOP = 0
+DEFAULT_CROP_Y_BOTTOM = 100
 
 DEFAULT_TAGS = ""
 DEFAULT_FILENAME = ""
@@ -62,19 +66,17 @@ class Root(Tk):
     def __init__(self):
         super(Root, self).__init__()
         self.outputImages = []
+        self.outputImagesFiles = []
         self.logCounter = 0
         self.buildGui()
-        with open(config.DEFAULT_TAGS_PATH) as f:
-            self.tags = json.load(f)
 
-
-    def buildGuiCrop(self, frame, column_from, row, text, cmd):
+    def buildGuiCrop(self, frame, column_from, row, text, cmd, from_, to_):
         # crop label
-        label = ttk.Label(frame, text = text)
+        label = ttk.Label(frame, text=text)
         label.grid(column = column_from, row = row, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # crop spinbox
         value = StringVar()
-        value.set(0)
+        value.set(from_)
         spinbox = Spinbox(
             frame,
             from_=0,
@@ -87,7 +89,7 @@ class Root(Tk):
         spinbox.grid(column = column_from + 1, row = row, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # crop 2 spinbox
         value2 = StringVar()
-        value2.set(100)
+        value2.set(to_)
         spinbox2 = Spinbox(
             frame,
             from_=0,
@@ -140,12 +142,12 @@ class Root(Tk):
         # Commands: button parse image
         self.buttonParseImage = ttk.Button(self.frame000, text = "Parse Image", command = self.parseImage)
         self.buttonParseImage.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
-        # Commands: button parse tags
-        self.buttonParseTags = ttk.Button(self.frame000, text = "Parse Tags", command = self.parseTags)
-        self.buttonParseTags.grid(column = 2, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # Commands: append
         self.buttonShow = ttk.Button(self.frame000, text = "Append to PDF", command = self.appendImage)
-        self.buttonShow.grid(column = 3, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        self.buttonShow.grid(column = 2, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        # Commands: button parse tags
+        self.buttonParseTags = ttk.Button(self.frame000, text = "Parse Tags", command = self.parseTags)
+        self.buttonParseTags.grid(column = 3, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # Commands: save
         self.buttonShow = ttk.Button(self.frame000, text = "Save PDF", command = self.outputFile)
         self.buttonShow.grid(column = 4, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
@@ -188,7 +190,9 @@ class Root(Tk):
             column_from = 0,
             row = 1,
             text = "Crop on X:",
-            cmd = self.cropImage
+            cmd = self.cropImage,
+            from_ = DEFAULT_CROP_X_LEFT,
+            to_ = DEFAULT_CROP_X_RIGHT
             )
         # crop y
         self.cropTopValue, self.cropBottomValue = self.buildGuiCrop(
@@ -196,7 +200,9 @@ class Root(Tk):
             column_from = 3,
             row = 1,
             text = "Crop on Y:",
-            cmd = self.cropImage
+            cmd = self.cropImage,
+            from_ = DEFAULT_CROP_Y_TOP,
+            to_ = DEFAULT_CROP_Y_BOTTOM
             )
         # Tags label
         self.tagsLabel = ttk.Label(self.frame002, text = "Tags:")
@@ -227,7 +233,7 @@ class Root(Tk):
         self.logList.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
         # parse listbox
-        self.parseList = Listbox(self.frame12, height=25, width=60)
+        self.parseList = Listbox(self.frame12, height=25, width=70)
         self.parseList.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
         # empty images
@@ -255,7 +261,7 @@ class Root(Tk):
             title="Input File", 
             filetypes=(("image files","*.png"),("all files","*.*")) 
             )
-        # scale 
+        # scale
         self.img = Image.open(self.filename)
         width, height = self.img.size
         ratio = min(DEFAULT_INPUT_IMAGE_SIZE / width, DEFAULT_INPUT_IMAGE_SIZE / height)
@@ -282,18 +288,22 @@ class Root(Tk):
             self.parseList.insert(END, l)
 
     def parseTags(self):
+        """ Search tags in the database.
+        """
         input_tags = self.tagsValue.get().split(" ")
         score_max = 0
-        for key, value in self.tags.items():
-            score = 0
-            for tag in input_tags:
-                if tag in key:
-                    score = score + 1
-            if score > score_max:
-                score_max = score
-                self.filenameValue.set(value)
-        score_percent = score/len(input_tags)*100
-        self.log(f"Parse tags with score {score_percent} %")
+        with open(config.DEFAULT_TAGS_PATH) as f:
+            base_tags = json.load(f)
+            for key, value in base_tags.items():
+                score = 0
+                for tag in input_tags:
+                    if tag in key:
+                        score = score + 1
+                if score > score_max:
+                    score_max = score
+                    self.filenameValue.set(value)
+        score_percent = score_max/len(input_tags)*100
+        self.log(f"Parse tags with score {int(score_percent)} %")
 
     def rotateImage(self):
         self.processImage(image=self.reducedImg)
@@ -305,7 +315,7 @@ class Root(Tk):
         self.processImage(image=self.reducedImg)
 
     def appendImage(self):
-        self.processImage(image=self.img, append=True)
+        self.processImage(image=self.img, filename=self.filename, append=True)
         # log
         self.log("Append file {} to PDF ({})".format(reduceFilename(self.filename), len(self.outputImages)))
 
@@ -315,7 +325,7 @@ class Root(Tk):
         self.log("Save PDF as {}".format(reduceFilename(self.filenamePdf)))
         self.log("------------------------------")
 
-    def processImage(self, image=None, save=False, append=False):
+    def processImage(self, image=None, filename=None, save=False, append=False):
         # rotate
         outputImg = image.rotate(float(self.rotateValue.get()), expand=0, fillcolor=self.whiteColor)
         # contrast
@@ -341,6 +351,7 @@ class Root(Tk):
             if outputImg.mode == 'RGBA':
                 outputImg = outputImg.convert('RGB')
             self.outputImages.append(outputImg)
+            self.outputImagesFiles.append(filename)
         # save
         if save:
             if False:
@@ -352,8 +363,15 @@ class Root(Tk):
             else:
                 self.filenamePdf = f"{DEFAULT_OUTPUT_PATH}\\{self.filenameValue.get()}"
             self.outputImages[0].save(self.filenamePdf, save_all=True, append_images=self.outputImages[1:])
-            # clear output images 
+            # move input files
+            for filename in self.outputImagesFiles:
+                os.rename(filename, f"{config.DEFAULT_TRASH_PATH}\\{os.path.basename(filename)}")
+            # clear everything
             self.outputImages = []
+            self.outputImagesFiles = []
+            self.parseList.delete(0, END)
+            self.tagsValue.set("")
+            self.filenameValue.set("")
 
 root = Root()
 root.mainloop()
