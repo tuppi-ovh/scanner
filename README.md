@@ -24,7 +24,8 @@ source venv/bin/activate
 
 # Install dependencies
 sudo apt-get install python3-tk
-python3 -m pip install -r requirements.txt
+python3 -m pip install pillow
+python3 -m pip install pytesseract
 ```
 
 ## Configuration File

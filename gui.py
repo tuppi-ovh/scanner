@@ -20,6 +20,7 @@ For information on Document Scanner: tuppi.ovh@gmail.com
 
 import os
 import inspect
+import pytesseract
 
 from tkinter import *
 from tkinter import ttk
@@ -32,7 +33,7 @@ import config
 CURRENT_DIR = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
 DEFAULT_INPUT_PATH = "/"
-DEFAULT_INPUT_IMAGE_SIZE = 550
+DEFAULT_INPUT_IMAGE_SIZE = 400
 DEFAULT_OUTPUT_PATH = "/"
 
 DEFAULT_PAD = 5
@@ -115,15 +116,21 @@ class Root(Tk):
         self.outputImageFrame = ttk.LabelFrame(self, text = "Output Image")
         self.outputImageFrame.grid(column = 1, row = 2, padx = DEFAULT_PAD, pady = DEFAULT_PAD) 
 
+        self.outputImageTextFrame = ttk.LabelFrame(self, text = "Parsed Text")
+        self.outputImageTextFrame.grid(column = 2, row = 2, padx = DEFAULT_PAD, pady = DEFAULT_PAD) 
+
         # Commands: button open image
         self.buttonInput = ttk.Button(self.buttonFrame, text = "Open Image", command = self.openFile)
         self.buttonInput.grid(column = 0, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        # Commands: button parse
+        self.buttonInput = ttk.Button(self.buttonFrame, text = "Parse Image", command = self.parseImage)
+        self.buttonInput.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # Commands: append
         self.buttonShow = ttk.Button(self.buttonFrame, text = "Append to PDF", command = self.appendImage)
-        self.buttonShow.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        self.buttonShow.grid(column = 2, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # Commands: save
         self.buttonShow = ttk.Button(self.buttonFrame, text = "Save PDF", command = self.outputFile)
-        self.buttonShow.grid(column = 2, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+        self.buttonShow.grid(column = 3, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
         # rotation label
         self.rotateLabel = ttk.Label(self.settingFrame, text = "Rotation:")
@@ -180,6 +187,10 @@ class Root(Tk):
         self.logList = Listbox(self, height=6, width=70)
         self.logList.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
+        # parse listbox
+        self.parseList = Listbox(self.outputImageTextFrame, height=25, width=70)
+        self.parseList.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
+
         # empty images
         self.whiteColor = (255, 255, 255)
         emptyImg = Image.new("RGB", (DEFAULT_INPUT_IMAGE_SIZE, DEFAULT_INPUT_IMAGE_SIZE), self.whiteColor)
@@ -209,7 +220,7 @@ class Root(Tk):
         self.img = Image.open(self.filename)
         width, height = self.img.size
         ratio = min(DEFAULT_INPUT_IMAGE_SIZE / width, DEFAULT_INPUT_IMAGE_SIZE / height)
-        self.reducedImg = self.img.resize((int(width * ratio), int(height * ratio)), Image.ANTIALIAS)
+        self.reducedImg = self.img.resize((int(width * ratio), int(height * ratio)), Image.LANCZOS)
         inputPhotoImg = ImageTk.PhotoImage(self.reducedImg)
         # default values
         self.rotateValue.set(DEFAULT_ROTATION)
@@ -221,6 +232,16 @@ class Root(Tk):
         self.processImage(image=self.reducedImg)
         # log
         self.log("Open file {}".format(reduceFilename(self.filename)))
+
+    def parseImage(self):
+        """ Parse image and print the text 
+        """
+        pytesseract.tesseract_cmd = "tesseract" 
+        text = pytesseract.image_to_string(self.img)
+        lines = text[:-1].split("\n")
+        for l in lines:
+            self.parseList.insert(END, l)
+            print(l)
 
     def rotateImage(self):
         self.processImage(image=self.reducedImg)
@@ -258,7 +279,7 @@ class Root(Tk):
         # scale
         width, height = outputImg.size
         ratio = min(DEFAULT_INPUT_IMAGE_SIZE / width, DEFAULT_INPUT_IMAGE_SIZE / height)
-        outputPhotoImg = outputImg.resize((int(width * ratio), int(height * ratio)), Image.ANTIALIAS)
+        outputPhotoImg = outputImg.resize((int(width * ratio), int(height * ratio)), Image.LANCZOS)
         outputPhotoImg = ImageTk.PhotoImage(outputPhotoImg)
         # show output
         self.outputCanvas.itemconfig(self.outputCanvasImage, image = outputPhotoImg)
