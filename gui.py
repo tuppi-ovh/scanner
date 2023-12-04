@@ -269,9 +269,16 @@ class Root(Tk):
         self.listdirs(DEFAULT_OUTPUT_PATH, dirs)
         output_path = os.path.abspath(DEFAULT_OUTPUT_PATH)
         for d in dirs:
-            d = d.replace(output_path +"/", "")
-            tags = d.lower().replace("/", " ").replace("-", " ").split(" ")
-            self.tags[d] = tags
+            d = d.replace(output_path +"/", "")  # unix
+            d = d.replace(output_path +"\\", "") # windows
+            key = d
+            d = d.lower()
+            d = d.replace("/", " ")  # unix
+            d = d.replace("\\", " ") # windows
+            d = d.replace("-", " ")
+            tags = d.split(" ")
+            self.tags[key] = tags
+            #print(f"{key}: {tags}")
         
     def log(self, message):
         self.logList.insert(0, " [{}] {}".format(self.logCounter, message))
