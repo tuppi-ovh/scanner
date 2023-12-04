@@ -69,6 +69,7 @@ class Root(Tk):
         self.outputImagesFiles = []
         self.logCounter = 0
         self.buildGui()
+        self.buildTags()
 
     def buildGuiCrop(self, frame, column_from, row, text, cmd, from_, to_):
         # crop label
@@ -251,6 +252,27 @@ class Root(Tk):
         self.outputCanvasImage = self.outputCanvas.create_image(DEFAULT_INPUT_IMAGE_SIZE/2, DEFAULT_INPUT_IMAGE_SIZE/2, anchor=CENTER, image=emptyPhotoImg) 
         self.outputCanvas.image = emptyPhotoImg
 
+    def listdirs(self, rootdir, dirs):
+        """ List directories and subdirectories.
+        """
+        for it in os.scandir(rootdir):
+            if it.is_dir():
+                if '.git' not in it.path:
+                    dirs.append(os.path.abspath(it.path))
+                    self.listdirs(it, dirs)
+
+    def buildTags(self):
+        """ Build tags by scanning all directories.
+        """
+        dirs = []
+        self.tags = {}
+        self.listdirs(DEFAULT_OUTPUT_PATH, dirs)
+        output_path = os.path.abspath(DEFAULT_OUTPUT_PATH)
+        for d in dirs:
+            d = d.replace(output_path +"/", "")
+            tags = d.lower().replace("/", " ").replace("-", " ").split(" ")
+            self.tags[d] = tags
+        
     def log(self, message):
         self.logList.insert(0, " [{}] {}".format(self.logCounter, message))
         self.logCounter += 1
@@ -292,16 +314,14 @@ class Root(Tk):
         """
         input_tags = self.tagsValue.get().split(" ")
         score_max = 0
-        with open(config.DEFAULT_TAGS_PATH) as f:
-            base_tags = json.load(f)
-            for key, value in base_tags.items():
-                score = 0
-                for tag in input_tags:
-                    if tag in key:
-                        score = score + 1
-                if score > score_max:
-                    score_max = score
-                    self.filenameValue.set(value)
+        for key, value in self.tags.items():
+            score = 0
+            for tag in input_tags:
+                if tag in value:
+                    score = score + 1
+            if score > score_max:
+                score_max = score
+                self.filenameValue.set(key)
         score_percent = score_max/len(input_tags)*100
         self.log(f"Parse tags with score {int(score_percent)} %")
 

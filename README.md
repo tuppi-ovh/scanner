@@ -13,7 +13,7 @@ The main idea of this project is to simplify the document scanning process:
 
 *Important! The steps described below were tested with python version 3.7.*
 
-Execute these commands:
+- Execute these commands:
 
 ```sh 
 # Create a virtual envirenment
@@ -28,6 +28,10 @@ sudo apt-get install tesseract-ocr
 python3 -m pip install pillow
 python3 -m pip install pytesseract
 ```
+
+- Define environment variable `TESSDATA_PREFIX` to `~/.tessdata/`.
+
+- Download tesseract dictionnaries to `~/.tessdata/`.
 
 ## Configuration File
 
@@ -64,6 +68,17 @@ python3 gui.py
 |--------------|----------------|----------------|
 ```
 
+## Generate Tags
+
+```sh
+$ find . -maxdepth 10 -type d -printf '%P \n' | grep -v ".git"
+```
+
 ## License
 
 Refer to the [LICENSE](LICENSE) file.
+
+## TODO
+
+- Preview the next file.
+- Add filename pattern.
