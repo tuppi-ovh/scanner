@@ -370,6 +370,8 @@ class Root(Tk):
         self.filenameValue.set("")
 
     def updateOutputCanvas(self, img):
+        """ Update output image.
+        """
         width, height = img.size
         ratio = min(DEFAULT_INPUT_IMAGE_SIZE / width, DEFAULT_INPUT_IMAGE_SIZE / height)
         outputPhotoImg = img.resize((int(width * ratio), int(height * ratio)), Image.LANCZOS)

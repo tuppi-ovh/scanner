@@ -52,7 +52,10 @@ class ScannerProcess():
         self._images = []
         self._images_files = []
 
-    def set_params(self, crop_x=(0,100), crop_y=(0,100), rotation=0, contrast=100):
+    def set_params(self, 
+                    crop_x=(DEFAULT_CROP_X_LEFT,DEFAULT_CROP_X_RIGHT), 
+                    crop_y=(DEFAULT_CROP_Y_TOP,DEFAULT_CROP_X_RIGHT), 
+                    rotation=DEFAULT_ROTATION, contrast=DEFAULT_CONTRAST):
         """ Set process parameters.
         """
         self._crop_left, self._crop_right = crop_x
