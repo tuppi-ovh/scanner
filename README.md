@@ -16,17 +16,15 @@ The main idea of this project is to simplify the document scanning process:
 - Execute these commands:
 
 ```sh 
-# Create a virtual envirenment
-python3 -m venv venv
-
-# Enter in virtual envirenment
-source venv/bin/activate
-
 # Install dependencies
 sudo apt-get install python3-tk
 sudo apt-get install tesseract-ocr
-python3 -m pip install pillow
-python3 -m pip install pytesseract
+
+# Create a virtual envirenment
+python3 -m venv .venv
+
+# Install requirements
+.venv/bin/python3 -m pip -r requirements.txt
 ```
 
 - Define environment variable `TESSDATA_PREFIX` to `~/.tessdata/`.
@@ -42,17 +40,9 @@ DEFAULT_INPUT_PATH = "/absolut/path/to/open/input/file"
 DEFAULT_OUTPUT_PATH = "/absolut/path/to/save/output/file"
 ```
 
-## Launch
+## Quick Start Guide
 
-Execute these commands:
-
-```sh 
-# Enter in virtual envirenment
-source venv/bin/activate
-
-## Launch GUI
-python3 gui.py
-```
+- Launch GUI: `python3 ./.venv/python3 scanner.py --gui`.
 
 ## Frames
 

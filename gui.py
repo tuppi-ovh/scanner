@@ -1,6 +1,6 @@
 """
 Document Scanner - Simplify the document scanning process.
-Copyright (C) 2021-2023 tuppi-ovh
+Copyright (C) 2021-2024 tuppi-ovh
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -19,41 +19,27 @@ For information on Document Scanner: tuppi.ovh@gmail.com
 """
 
 import os
-import json
 import inspect
 import pytesseract
 
-from tkinter import *
+#from tkinter import *
+from tkinter import Tk
 from tkinter import ttk
 from tkinter import filedialog
-from tkinter import Listbox
+from tkinter import Listbox, StringVar, Spinbox
+from tkinter import Canvas
+from tkinter import CENTER, END
 from PIL import ImageTk, Image, ImageEnhance
 
 import config
+import process
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
-DEFAULT_INPUT_PATH = "/"
-DEFAULT_INPUT_IMAGE_SIZE = 400
-DEFAULT_OUTPUT_PATH = "/"
+DEFAULT_INPUT_IMAGE_SIZE = process.DEFAULT_INPUT_IMAGE_SIZE
 
 DEFAULT_PAD = 5
-DEFAULT_CONTRAST = 200
-DEFAULT_ROTATION = 0.0
-DEFAULT_CROP_X_LEFT = 1
-DEFAULT_CROP_X_RIGHT = 100
-DEFAULT_CROP_Y_TOP = 0
-DEFAULT_CROP_Y_BOTTOM = 100
-
 DEFAULT_TAGS = ""
-DEFAULT_FILENAME = ""
-
-# overwrite config
-if config.DEFAULT_INPUT_PATH is not None:
-    DEFAULT_INPUT_PATH = config.DEFAULT_INPUT_PATH
-if config.DEFAULT_OUTPUT_PATH is not None:
-    DEFAULT_OUTPUT_PATH = config.DEFAULT_OUTPUT_PATH
-
 
 def reduceFilename(filename):
     length = len(filename)
@@ -64,12 +50,20 @@ def reduceFilename(filename):
 
 class Root(Tk):
     def __init__(self):
-        super(Root, self).__init__()
+        # protected vars
+        self._scannerProcess = process.ScannerProcess()
+        # public vars
+        self.img = None
+        self.reducedImg = None
+        self.filename = None
         self.outputImages = []
         self.outputImagesFiles = []
         self.logCounter = 0
+        # init
+        super(Root, self).__init__()
         self.buildGui()
         self.buildTags()
+        
 
     def buildGuiCrop(self, frame, column_from, row, text, cmd, from_, to_):
         # crop label
@@ -158,7 +152,7 @@ class Root(Tk):
         self.rotateLabel.grid(column = 0, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # rotation spinbox
         self.rotateValue = StringVar()
-        self.rotateValue.set(DEFAULT_ROTATION)
+        self.rotateValue.set(process.DEFAULT_ROTATION)
         self.rotateSpinBox = Spinbox(
             self.frame001,
             from_=-180,
@@ -174,7 +168,7 @@ class Root(Tk):
         self.contrastLabel.grid(column = 2, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # contrast spinbox
         self.contrastValue = StringVar()
-        self.contrastValue.set(DEFAULT_CONTRAST)
+        self.contrastValue.set(process.DEFAULT_CONTRAST)
         self.contrastSpinBox = Spinbox(
             self.frame001,
             from_=0,
@@ -192,8 +186,8 @@ class Root(Tk):
             row = 1,
             text = "Crop on X:",
             cmd = self.cropImage,
-            from_ = DEFAULT_CROP_X_LEFT,
-            to_ = DEFAULT_CROP_X_RIGHT
+            from_ = process.DEFAULT_CROP_X_LEFT,
+            to_ = process.DEFAULT_CROP_X_RIGHT
             )
         # crop y
         self.cropTopValue, self.cropBottomValue = self.buildGuiCrop(
@@ -202,8 +196,8 @@ class Root(Tk):
             row = 1,
             text = "Crop on Y:",
             cmd = self.cropImage,
-            from_ = DEFAULT_CROP_Y_TOP,
-            to_ = DEFAULT_CROP_Y_BOTTOM
+            from_ = process.DEFAULT_CROP_Y_TOP,
+            to_ = process.DEFAULT_CROP_Y_BOTTOM
             )
         # Tags label
         self.tagsLabel = ttk.Label(self.frame002, text = "Tags:")
@@ -222,7 +216,7 @@ class Root(Tk):
         self.filenameLabel.grid(column = 0, row = 3, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
         # Filename entry
         self.filenameValue = StringVar()
-        self.filenameValue.set(DEFAULT_FILENAME)
+        self.filenameValue.set(process.DEFAULT_FILENAME)
         self.filenameEntry = ttk.Entry(
             self.frame002,
             textvariable=self.filenameValue,
@@ -238,8 +232,7 @@ class Root(Tk):
         self.parseList.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
         # empty images
-        self.whiteColor = (255, 255, 255)
-        emptyImg = Image.new("RGB", (DEFAULT_INPUT_IMAGE_SIZE, DEFAULT_INPUT_IMAGE_SIZE), self.whiteColor)
+        emptyImg = Image.new("RGB", (DEFAULT_INPUT_IMAGE_SIZE, DEFAULT_INPUT_IMAGE_SIZE), self._scannerProcess.whiteColor)
         emptyPhotoImg = ImageTk.PhotoImage(emptyImg)  
         # show input
         self.canvas = Canvas(self.frame10, width=DEFAULT_INPUT_IMAGE_SIZE, height=DEFAULT_INPUT_IMAGE_SIZE)  
@@ -266,8 +259,8 @@ class Root(Tk):
         """
         dirs = []
         self.tags = {}
-        self.listdirs(DEFAULT_OUTPUT_PATH, dirs)
-        output_path = os.path.abspath(DEFAULT_OUTPUT_PATH)
+        self.listdirs(config.DEFAULT_OUTPUT_PATH, dirs)
+        output_path = os.path.abspath(config.DEFAULT_OUTPUT_PATH)
         for d in dirs:
             d = d.replace(output_path +"/", "")  # unix
             d = d.replace(output_path +"\\", "") # windows
@@ -286,7 +279,7 @@ class Root(Tk):
 
     def openFile(self):
         self.filename = filedialog.askopenfilename(
-            initialdir=DEFAULT_INPUT_PATH, 
+            initialdir=config.DEFAULT_INPUT_PATH, 
             title="Input File", 
             filetypes=(("image files","*.png"),("all files","*.*")) 
             )
@@ -297,8 +290,8 @@ class Root(Tk):
         self.reducedImg = self.img.resize((int(width * ratio), int(height * ratio)), Image.LANCZOS)
         inputPhotoImg = ImageTk.PhotoImage(self.reducedImg)
         # default values
-        self.rotateValue.set(DEFAULT_ROTATION)
-        self.contrastValue.set(DEFAULT_CONTRAST)
+        self.rotateValue.set(process.DEFAULT_ROTATION)
+        self.contrastValue.set(process.DEFAULT_CONTRAST)
         # show input
         self.canvas.itemconfig(self.canvasImage, image = inputPhotoImg)
         self.canvas.image = inputPhotoImg
@@ -347,58 +340,30 @@ class Root(Tk):
         self.log("Append file {} to PDF ({})".format(reduceFilename(self.filename), len(self.outputImages)))
 
     def outputFile(self):
-        self.processImage(image=self.img, save=True)
+        self.filenamePdf = f"{config.DEFAULT_OUTPUT_PATH}/{self.filenameValue.get()}"
+        # process command
+        self.processImage(image=self.img, savePdf=self.filenamePdf)
         # log
         self.log("Save PDF as {}".format(reduceFilename(self.filenamePdf)))
         self.log("------------------------------")
 
-    def processImage(self, image=None, filename=None, save=False, append=False):
-        # rotate
-        outputImg = image.rotate(float(self.rotateValue.get()), expand=0, fillcolor=self.whiteColor)
-        # contrast
-        enhancer = ImageEnhance.Contrast(outputImg)
-        outputImg = enhancer.enhance(float(self.contrastValue.get()) * 0.01)
-        # crop 
-        width, height = outputImg.size
-        left = width * float(self.cropLeftValue.get()) * 0.01
-        top = height * float(self.cropTopValue.get()) * 0.01
-        right = width * float(self.cropRightValue.get()) * 0.01
-        bottom = height * float(self.cropBottomValue.get()) * 0.01
-        outputImg = outputImg.crop((left, top, right, bottom)) 
-        # scale
-        width, height = outputImg.size
+    def processImage(self, image=None, filename=None, savePdf=None, append=False):
+        output = self._scannerProcess.processImage(
+            image=image, filename=filename, savePdf=savePdf, append=append)
+        self.updateOutputCanvas(img=output)
+        self.parseList.delete(0, END)
+        self.tagsValue.set("")
+        self.filenameValue.set("")
+
+    def updateOutputCanvas(self, img):
+        width, height = img.size
         ratio = min(DEFAULT_INPUT_IMAGE_SIZE / width, DEFAULT_INPUT_IMAGE_SIZE / height)
-        outputPhotoImg = outputImg.resize((int(width * ratio), int(height * ratio)), Image.LANCZOS)
+        outputPhotoImg = img.resize((int(width * ratio), int(height * ratio)), Image.LANCZOS)
         outputPhotoImg = ImageTk.PhotoImage(outputPhotoImg)
         # show output
         self.outputCanvas.itemconfig(self.outputCanvasImage, image = outputPhotoImg)
         self.outputCanvas.image = outputPhotoImg
-        # append 
-        if append:
-            if outputImg.mode == 'RGBA':
-                outputImg = outputImg.convert('RGB')
-            self.outputImages.append(outputImg)
-            self.outputImagesFiles.append(filename)
-        # save
-        if save:
-            if False:
-                self.filenamePdf = filedialog.asksaveasfilename(
-                    initialdir = DEFAULT_OUTPUT_PATH, 
-                    title = "Output File", 
-                    defaultextension="*.*",
-                    filetypes = (("document files","*.pdf"),("all files","*.*")) )
-            else:
-                self.filenamePdf = f"{DEFAULT_OUTPUT_PATH}\\{self.filenameValue.get()}"
-            self.outputImages[0].save(self.filenamePdf, save_all=True, append_images=self.outputImages[1:])
-            # move input files
-            for filename in self.outputImagesFiles:
-                os.rename(filename, f"{config.DEFAULT_TRASH_PATH}\\{os.path.basename(filename)}")
-            # clear everything
-            self.outputImages = []
-            self.outputImagesFiles = []
-            self.parseList.delete(0, END)
-            self.tagsValue.set("")
-            self.filenameValue.set("")
 
-root = Root()
-root.mainloop()
+def guiRun():
+    root = Root()
+    root.mainloop()
