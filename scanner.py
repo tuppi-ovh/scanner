@@ -23,11 +23,13 @@ import argparse
 import gui
 
 def main():
+    """ Entry point function.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--counter", help="COUCOU.", required=False, type=int)
     parser.add_argument("--gui", help="Launch GUI.", action="store_true")
     args = parser.parse_args()
-    
+
     if args.gui:
         gui.guiRun()
 

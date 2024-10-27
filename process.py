@@ -20,7 +20,7 @@ For information on Document Scanner: tuppi.ovh@gmail.com
 
 import os
 
-from PIL import ImageTk, Image, ImageEnhance
+from PIL import ImageEnhance
 
 import config
 
@@ -34,47 +34,61 @@ DEFAULT_CROP_Y_BOTTOM = 100
 DEFAULT_INPUT_IMAGE_SIZE = 400
 
 class ScannerProcess():
+    """ Class defining scanner process methods. 
+    """
 
     def __init__(self):
+        """ Constructor.
+        """
         # public
-        self.whiteColor = (255, 255, 255)
+        self.white_color = (255, 255, 255)
         # protected
-        self._cropLeft   = DEFAULT_CROP_X_LEFT   # float(self.cropLeftValue.get())
-        self._cropRight  = DEFAULT_CROP_X_RIGHT  # float(self.cropRightValue.get())
-        self._cropTop    = DEFAULT_CROP_Y_TOP    # float(self.cropTopValue.get()) 
-        self._cropBottom = DEFAULT_CROP_Y_BOTTOM # float(self.cropBottomValue.get())
-        self._rotation = DEFAULT_ROTATION # float(self.rotateValue.get())
-        self._contrast = DEFAULT_CONTRAST # float(self.contrastValue.get())
-        self._outputImages = []
-        self._outputImagesFiles = []
+        self._crop_left   = DEFAULT_CROP_X_LEFT
+        self._crop_right  = DEFAULT_CROP_X_RIGHT
+        self._crop_top    = DEFAULT_CROP_Y_TOP
+        self._crop_bottom = DEFAULT_CROP_Y_BOTTOM
+        self._rotation = DEFAULT_ROTATION
+        self._contrast = DEFAULT_CONTRAST
+        self._images = []
+        self._images_files = []
 
-    def processImage(self, image=None, filename=None, savePdf=None, append=False):
+    def set_params(self, crop_x=(0,100), crop_y=(0,100), rotation=0, contrast=100):
+        """ Set process parameters.
+        """
+        self._crop_left, self._crop_right = crop_x
+        self._crop_top, self._crop_bottom = crop_y
+        self._rotation = rotation
+        self._contrast = contrast
+
+    def process_image(self, image=None, filename=None, save_pdf=None, append=False):
+        """ Process image and return resulting image.
+        """
         # rotate
-        outputImg = image.rotate(self._rotation, expand=0, fillcolor=self.whiteColor)
+        img_out = image.rotate(self._rotation, expand=0, fillcolor=self.white_color)
         # contrast
-        enhancer = ImageEnhance.Contrast(outputImg)
-        outputImg = enhancer.enhance(self._contrast * 0.01)
-        # crop 
-        width, height = outputImg.size
-        left = width * self._cropLeft * 0.01
-        top = height * self._cropTop * 0.01
-        right = width * self._cropRight * 0.01
-        bottom = height * self._cropBottom * 0.01
-        outputImg = outputImg.crop((left, top, right, bottom)) 
-        # append 
+        enhancer = ImageEnhance.Contrast(img_out)
+        img_out = enhancer.enhance(self._contrast * 0.01)
+        # crop
+        width, height = img_out.size
+        left = width * self._crop_left * 0.01
+        top = height * self._crop_top * 0.01
+        right = width * self._crop_right * 0.01
+        bottom = height * self._crop_bottom * 0.01
+        img_out = img_out.crop((left, top, right, bottom))
+        # append
         if append:
-            if outputImg.mode == 'RGBA':
-                outputImg = outputImg.convert('RGB')
-            self._outputImages.append(outputImg)
-            self._outputImagesFiles.append(filename)
+            if img_out.mode == 'RGBA':
+                img_out = img_out.convert('RGB')
+            self._images.append(img_out)
+            self._images_files.append(filename)
         # save
-        if savePdf is not None:
-            self._outputImages[0].save(savePdf, save_all=True, append_images=self._outputImages[1:])
+        if save_pdf is not None:
+            self._images[0].save(save_pdf, save_all=True, append_images=self._images[1:])
             # move input files
-            for filename in self._outputImagesFiles:
-                os.rename(filename, f"{config.DEFAULT_TRASH_PATH}/{os.path.basename(filename)}")
+            for f in self._images_files:
+                os.rename(f, f"{config.DEFAULT_TRASH_PATH}/{os.path.basename(f)}")
             # clear everything
-            self._outputImages = []
-            self._outputImagesFiles = []
+            self._images = []
+            self._images_files = []
         # output image
-        return outputImg
+        return img_out

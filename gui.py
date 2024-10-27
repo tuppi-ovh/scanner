@@ -232,7 +232,7 @@ class Root(Tk):
         self.parseList.grid(column = 1, row = 0, padx = DEFAULT_PAD, pady = DEFAULT_PAD)
 
         # empty images
-        emptyImg = Image.new("RGB", (DEFAULT_INPUT_IMAGE_SIZE, DEFAULT_INPUT_IMAGE_SIZE), self._scannerProcess.whiteColor)
+        emptyImg = Image.new("RGB", (DEFAULT_INPUT_IMAGE_SIZE, DEFAULT_INPUT_IMAGE_SIZE), self._scannerProcess.white_color)
         emptyPhotoImg = ImageTk.PhotoImage(emptyImg)  
         # show input
         self.canvas = Canvas(self.frame10, width=DEFAULT_INPUT_IMAGE_SIZE, height=DEFAULT_INPUT_IMAGE_SIZE)  
@@ -342,15 +342,29 @@ class Root(Tk):
     def outputFile(self):
         self.filenamePdf = f"{config.DEFAULT_OUTPUT_PATH}/{self.filenameValue.get()}"
         # process command
-        self.processImage(image=self.img, savePdf=self.filenamePdf)
+        self.processImage(image=self.img, save_pdf=self.filenamePdf)
         # log
         self.log("Save PDF as {}".format(reduceFilename(self.filenamePdf)))
         self.log("------------------------------")
 
-    def processImage(self, image=None, filename=None, savePdf=None, append=False):
-        output = self._scannerProcess.processImage(
-            image=image, filename=filename, savePdf=savePdf, append=append)
+    def processImage(self, image=None, filename=None, save_pdf=None, append=False):
+        # process params
+        self._scannerProcess.set_params(
+            crop_x=(float(self.cropLeftValue.get()),float(self.cropRightValue.get())),
+            crop_y=(float(self.cropTopValue.get()),float(self.cropBottomValue.get())),
+            rotation=float(self.rotateValue.get()), 
+            contrast=float(self.contrastValue.get())
+        )
+        # process image
+        output = self._scannerProcess.process_image(
+            image=image, 
+            filename=filename, 
+            save_pdf=save_pdf, 
+            append=append
+        )
+        # update output
         self.updateOutputCanvas(img=output)
+        # reset
         self.parseList.delete(0, END)
         self.tagsValue.set("")
         self.filenameValue.set("")
